@@ -44,6 +44,16 @@ static bool isThisTheMainThread(const d_ThreadHandle mainThreadHandle) noexcept
    #endif
 }
 
+static constexpr inline uint32_t AppTypePuglWorldFlags(const Application::Type type) noexcept
+{
+   #ifdef DGL_USING_X11_OR_WAYLAND
+    return type == Application::kTypeClassic ? PUGL_WORLD_BACKEND_X11 :
+           type == Application::kTypeModern ? PUGL_WORLD_BACKEND_WAYLAND : 0;
+   #else
+    return 0 & type;
+   #endif
+}
+
 // --------------------------------------------------------------------------------------------------------------------
 
 const char* Application::getClassName() const noexcept
@@ -55,8 +65,12 @@ const char* Application::getClassName() const noexcept
 
 Application::PrivateData::PrivateData(const bool standalone, const Type type)
     : world(puglNewWorld(standalone ? PUGL_PROGRAM : PUGL_MODULE,
-                         (standalone ? PUGL_WORLD_THREADS : 0))),
+                         (standalone ? PUGL_WORLD_THREADS : 0) | AppTypePuglWorldFlags(type))),
+     #ifdef DGL_USING_X11_OR_WAYLAND
+      isModern(world != nullptr && puglUsingWayland(world)),
+     #else
       isModern(false),
+     #endif
       isStandalone(standalone),
       isStarting(true),
       isQuitting(false),

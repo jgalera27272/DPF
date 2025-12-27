@@ -87,6 +87,7 @@ public:
       Type of application to setup, either "classic" or "modern".
 
       What this means depends on the OS.
+      For now it's only relevant on X11 vs Wayland systems, where X11 is kTypeClassic and Wayland is kTypeModern.
     */
     enum Type {
         kTypeAuto,

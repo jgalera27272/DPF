@@ -576,7 +576,19 @@ void puglWin32ShowCentered(PuglView* const view)
 
 // --------------------------------------------------------------------------------------------------------------------
 
-#elif defined(HAVE_X11)
+#elif defined(DGL_USING_X11_OR_WAYLAND)
+
+// --------------------------------------------------------------------------------------------------------------------
+// X11 or Wayland specific, check if using wayland
+
+bool puglUsingWayland(PuglWorld* const world)
+{
+    // TODO
+    (void)world;
+    return false;
+}
+
+#ifdef HAVE_X11
 
 // --------------------------------------------------------------------------------------------------------------------
 // X11 specific, update world without triggering exposure events
@@ -643,9 +655,25 @@ void puglX11SetWindowType(const PuglView* const view, const bool isStandalone)
                     numWindowTypes);
 }
 
+#endif // HAVE_X11
+
+#ifdef HAVE_WAYLAND
+
+// --------------------------------------------------------------------------------------------------------------------
+// Wayland specific, check if running wayland and if compositor supports decorations
+
+bool puglWaylandStatus(bool* supportsDecorations)
+{
+    // TODO
+    (void)supportsDecorations;
+    return false;
+}
+
+#endif // HAVE_WAYLAND
+
 // --------------------------------------------------------------------------------------------------------------------
 
-#endif // HAVE_X11
+#endif
 
 #ifndef DISTRHO_OS_MAC
 END_NAMESPACE_DGL
