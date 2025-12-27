@@ -11,7 +11,7 @@ include ../Makefile.base.mk
 # ---------------------------------------------------------------------------------------------------------------------
 
 BUILD_C_FLAGS   += $(DGL_FLAGS) -I..
-BUILD_CXX_FLAGS += $(DGL_FLAGS) -I.. -I../dgl/src/pugl-upstream/include -DDONT_SET_USING_DGL_NAMESPACE
+BUILD_CXX_FLAGS += $(DGL_FLAGS) -I.. -I../dgl -I../dgl/src/pugl-upstream/include -DDONT_SET_USING_DGL_NAMESPACE
 LINK_FLAGS      += -lpthread
 
 # TODO fix within pugl

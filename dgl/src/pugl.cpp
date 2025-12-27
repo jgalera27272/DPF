@@ -15,6 +15,8 @@
  */
 
 #include "pugl.hpp"
+#include "Base.hpp"
+#include "pugl/pugl.h"
 
 // --------------------------------------------------------------------------------------------------------------------
 // include base headers
@@ -76,37 +78,59 @@
 #  include <vulkan/vulkan.h>
 #  include <vulkan/vulkan_win32.h>
 # endif
-#elif defined(HAVE_X11)
+#elif defined(DGL_USING_X11_OR_WAYLAND)
 # include <dlfcn.h>
 # include <limits.h>
 # include <unistd.h>
+# include <sys/mman.h>
 # include <sys/select.h>
 // # include <sys/time.h>
-# include <X11/X.h>
-# include <X11/Xatom.h>
-# include <X11/Xlib.h>
-# include <X11/Xresource.h>
-# include <X11/Xutil.h>
-# include <X11/keysym.h>
-# ifdef HAVE_XCURSOR
-#  include <X11/Xcursor/Xcursor.h>
-// #  include <X11/cursorfont.h>
+# ifdef HAVE_X11
+#  include <X11/X.h>
+#  include <X11/Xatom.h>
+#  include <X11/Xlib.h>
+#  include <X11/Xresource.h>
+#  include <X11/Xutil.h>
+#  include <X11/keysym.h>
+#  ifdef HAVE_XCURSOR
+#   include <X11/Xcursor/Xcursor.h>
+// #   include <X11/cursorfont.h>
+#  endif
+#  ifdef HAVE_XRANDR
+#   include <X11/extensions/Xrandr.h>
+#  endif
+#  ifdef HAVE_XSYNC
+#   include <X11/extensions/sync.h>
+#   include <X11/extensions/syncconst.h>
+#  endif
+#  ifdef DGL_CAIRO
+#   include <cairo-xlib.h>
+#  endif
+#  ifdef DGL_OPENGL
+#   include <GL/glx.h>
+#  endif
+#  ifdef DGL_VULKAN
+#   include <vulkan/vulkan_xlib.h>
+#  endif
 # endif
-# ifdef HAVE_XRANDR
-#  include <X11/extensions/Xrandr.h>
-# endif
-# ifdef HAVE_XSYNC
-#  include <X11/extensions/sync.h>
-#  include <X11/extensions/syncconst.h>
-# endif
-# ifdef DGL_CAIRO
-#  include <cairo-xlib.h>
-# endif
-# ifdef DGL_OPENGL
-#  include <GL/glx.h>
-# endif
-# ifdef DGL_VULKAN
-#  include <vulkan/vulkan_xlib.h>
+# ifdef HAVE_WAYLAND
+// #  include <xkbcommon/xkbcommon-keysyms.h>
+// #  include <xkbcommon/xkbcommon.h>
+// #  include <wayland-client.h>
+// #  include <wayland-util.h>
+// #  include <wayland-client-core.h>
+// #  include <wayland-client-protocol.h>
+// #  include <wayland-cursor.h>
+// #  include "pugl-upstream/src/xdg-decoration.h"
+// #  include "pugl-upstream/src/xdg-shell.h"
+// #  ifdef DGL_OPENGL
+// #   include <wayland-egl-core.h>
+// #   include <EGL/egl.h>
+// #   include <EGL/eglplatform.h>
+// #  endif
+// #  ifdef DGL_VULKAN
+// #   include <vulkan/vulkan_wayland.h>
+// #  endif
 # endif
 #endif
 
@@ -193,29 +217,102 @@ START_NAMESPACE_DGL
 # ifdef DGL_VULKAN
 #  include "pugl-upstream/src/win_vulkan.c"
 # endif
-#elif defined(HAVE_X11)
-# if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
-#  pragma GCC diagnostic push
-#  pragma GCC diagnostic ignored "-Wsign-conversion"
+#elif defined(DGL_USING_X11_OR_WAYLAND)
+// # include "pugl-upstream/src/types.h"
+# include "pugl-upstream/src/common.c"
+# include "pugl-upstream/src/internal.c"
+# ifdef HAVE_X11
+#  undef PUGL_PUGL_H
+#  undef PUGL_CAIRO_H
+#  undef PUGL_GL_H
+#  undef PUGL_STUB_H
+#  undef PUGL_VULKAN_H
+#  undef PUGL_INTERNAL_H
+#  undef PUGL_PLATFORM_H
+#  undef PUGL_SRC_STUB_H
+#  undef PUGL_SRC_TYPES_H
+static const char kUsingX11Check[] = "x11";
+namespace x11 {
+struct PuglBackendImpl;
+struct PuglInternalsImpl;
+struct PuglViewImpl;
+struct PuglWorldImpl;
+struct PuglWorldInternalsImpl;
+#  include "pugl-upstream/src/common.c"
+#  include "pugl-upstream/src/internal.c"
+#  include "pugl-upstream/src/x11.c"
+#  include "pugl-upstream/src/x11_stub.c"
+#  ifdef DGL_CAIRO
+#   include "pugl-upstream/src/x11_cairo.c"
+#  endif
+#  ifdef DGL_OPENGL
+#   include "pugl-upstream/src/x11_gl.c"
+#  endif
+#  ifdef DGL_VULKAN
+#   include "pugl-upstream/src/x11_vulkan.c"
+#  endif
+}
 # endif
-# include "pugl-upstream/src/x11.c"
-# if defined(__GNUC__) && (__GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 6))
-#  pragma GCC diagnostic pop
-# endif
-# include "pugl-upstream/src/x11_stub.c"
-# ifdef DGL_CAIRO
-#  include "pugl-upstream/src/x11_cairo.c"
-# endif
-# ifdef DGL_OPENGL
-#  include "pugl-upstream/src/x11_gl.c"
-# endif
-# ifdef DGL_VULKAN
-#  include "pugl-upstream/src/x11_vulkan.c"
+# ifdef HAVE_WAYLAND
+#  undef PUGL_PUGL_H
+#  undef PUGL_CAIRO_H
+#  undef PUGL_GL_H
+#  undef PUGL_STUB_H
+#  undef PUGL_VULKAN_H
+#  undef PUGL_INTERNAL_H
+#  undef PUGL_PLATFORM_H
+#  undef PUGL_SRC_STUB_H
+#  undef PUGL_SRC_TYPES_H
+END_NAMESPACE_DGL
+extern "C" {
+#  include "pugl-upstream/src/xdg-decoration.c"
+#  include "pugl-upstream/src/xdg-shell.c"
+}
+START_NAMESPACE_DGL
+static const char kUsingWaylandCheck[] = "wl";
+namespace wl {
+struct PuglBackendImpl;
+struct PuglInternalsImpl;
+struct PuglViewImpl;
+struct PuglWorldImpl;
+struct PuglWorldInternalsImpl;
+#  define wl_callback ::wl_callback
+#  define wl_seat ::wl_seat
+#  define wl_surface ::wl_surface
+#  define xdg_decoration_manager ::zxdg_decoration_manager_v1
+#  include "pugl-upstream/src/common.c"
+#  include "pugl-upstream/src/internal.c"
+#  include "pugl-upstream/src/wayland.c"
+#  include "pugl-upstream/src/wayland_stub.c"
+#  ifdef DGL_CAIRO
+#   include "pugl-upstream/src/wayland_cairo.c"
+#  endif
+#  ifdef DGL_OPENGL
+#   include "pugl-upstream/src/wayland_gl.c"
+#  endif
+#  ifdef DGL_VULKAN
+#   include "pugl-upstream/src/wayland_vulkan.c"
+#  endif
+}
 # endif
 #endif
 
-#include "pugl-upstream/src/common.c"
-#include "pugl-upstream/src/internal.c"
+#ifdef DGL_USING_X11_OR_WAYLAND
+template<class Tp, class T>
+static constexpr inline Tp* cast(T* t) noexcept
+{
+    return static_cast<Tp*>(static_cast<void*>(t));
+}
+
+template<class Tp, class T>
+static constexpr inline const Tp* cast(const T* t) noexcept
+{
+    return static_cast<const Tp*>(static_cast<const void*>(t));
+}
+#else
+# include "pugl-upstream/src/common.c"
+# include "pugl-upstream/src/internal.c"
+#endif
 
 // --------------------------------------------------------------------------------------------------------------------
 // DGL specific, expose backend enter
@@ -238,6 +335,46 @@ bool puglBackendLeave(PuglView* const view)
 
 void puglSetMatchingBackendForCurrentBuild(PuglView* const view)
 {
+  #ifdef DGL_USING_X11_OR_WAYLAND
+    do {
+       #ifdef HAVE_X11
+        if (view->world->handle == kUsingX11Check)
+        {
+            x11::PuglView* const x11view = cast<x11::PuglView>(view);
+           #ifdef DGL_CAIRO
+            x11::puglSetBackend(x11view, x11::puglCairoBackend());
+           #endif
+           #ifdef DGL_OPENGL
+            x11::puglSetBackend(x11view, x11::puglGlBackend());
+           #endif
+           #ifdef DGL_VULKAN
+            x11::puglSetBackend(x11view, x11::puglVulkanBackend());
+           #endif
+            // maybe unused
+            (void)x11view;
+            break;
+        }
+       #endif
+       #ifdef HAVE_WAYLAND
+        if (view->world->handle == kUsingWaylandCheck)
+        {
+            wl::PuglView* const wlview = cast<wl::PuglView>(view);
+           #ifdef DGL_CAIRO
+            wl::puglSetBackend(wlview, wl::puglCairoBackend());
+           #endif
+           #ifdef DGL_OPENGL
+            wl::puglSetBackend(wlview, wl::puglGlBackend());
+           #endif
+           #ifdef DGL_VULKAN
+            wl::puglSetBackend(wlview, wl::puglVulkanBackend());
+           #endif
+            // maybe unused
+            (void)wlview;
+            break;
+        }
+       #endif
+    } while (false);
+  #else
    #ifdef DGL_CAIRO
     puglSetBackend(view, puglCairoBackend());
    #endif
@@ -247,6 +384,7 @@ void puglSetMatchingBackendForCurrentBuild(PuglView* const view)
    #ifdef DGL_VULKAN
     puglSetBackend(view, puglVulkanBackend());
    #endif
+  #endif
 
     if (view->backend != nullptr)
     {
@@ -270,7 +408,24 @@ void puglSetMatchingBackendForCurrentBuild(PuglView* const view)
     }
     else
     {
+      #ifdef DGL_USING_X11_OR_WAYLAND
+       #ifdef HAVE_X11
+        if (view->world->handle == kUsingX11Check)
+        {
+            x11::puglSetBackend(cast<x11::PuglView>(view), x11::puglStubBackend());
+            return;
+        }
+       #endif
+       #ifdef HAVE_WAYLAND
+        if (view->world->handle == kUsingWaylandCheck)
+        {
+            wl::puglSetBackend(cast<wl::PuglView>(view), wl::puglStubBackend());
+            return;
+        }
+       #endif
+      #else
         puglSetBackend(view, puglStubBackend());
+      #endif
     }
 }
 
@@ -290,8 +445,23 @@ void puglRaiseWindow(PuglView* const view)
    #elif defined(DISTRHO_OS_WINDOWS)
     SetForegroundWindow(view->impl->hwnd);
     SetActiveWindow(view->impl->hwnd);
-   #elif defined(HAVE_X11)
-    XRaiseWindow(view->world->impl->display, view->impl->win);
+   #elif defined(DGL_USING_X11_OR_WAYLAND)
+    do {
+       #ifdef HAVE_X11
+        if (view->world->handle == kUsingX11Check)
+        {
+            x11::PuglView* const x11view = cast<x11::PuglView>(view);
+            XRaiseWindow(x11view->world->impl->display, x11view->impl->win);
+            break;
+        }
+       #endif
+       #ifdef HAVE_WAYLAND
+        if (view->world->handle == kUsingWaylandCheck)
+        {
+            break;
+        }
+       #endif
+    } while (false);
    #endif
 }
 
@@ -330,14 +500,29 @@ PuglStatus puglSetGeometryConstraints(PuglView* const view, const uint width, co
     }, className, width, height);
    #elif defined(DISTRHO_OS_WINDOWS)
     // nothing
-   #elif defined(HAVE_X11)
-    if (view->impl->win)
-    {
-        if (const PuglStatus status = puglUpdateSizeHints(view))
-            return status;
+   #elif defined(DGL_USING_X11_OR_WAYLAND)
+    do {
+       #ifdef HAVE_X11
+        if (view->world->handle == kUsingX11Check)
+        {
+            x11::PuglView* const x11view = cast<x11::PuglView>(view);
+            if (x11view->impl->win)
+            {
+                if (const x11::PuglStatus status = x11::puglUpdateSizeHints(x11view))
+                    return static_cast<PuglStatus>(status);
 
-        XFlush(view->world->impl->display);
-    }
+                XFlush(x11view->world->impl->display);
+                break;
+            }
+        }
+       #endif
+       #ifdef HAVE_WAYLAND
+        if (view->world->handle == kUsingWaylandCheck)
+        {
+            break;
+        }
+       #endif
+    } while (false);
    #endif
 
     return PUGL_SUCCESS;
@@ -368,8 +553,22 @@ void puglSetResizable(PuglView* const view, const bool resizable)
                                         : GetWindowLong(hwnd, GWL_STYLE) & ~(WS_SIZEBOX | WS_MAXIMIZEBOX);
         SetWindowLong(hwnd, GWL_STYLE, winFlags);
     }
-   #elif defined(HAVE_X11)
-    puglUpdateSizeHints(view);
+   #elif defined(DGL_USING_X11_OR_WAYLAND)
+    do {
+       #ifdef HAVE_X11
+        if (view->world->handle == kUsingX11Check)
+        {
+            x11::puglUpdateSizeHints(cast<x11::PuglView>(view));
+            break;
+        }
+       #endif
+       #ifdef HAVE_WAYLAND
+        if (view->world->handle == kUsingWaylandCheck)
+        {
+            break;
+        }
+       #endif
+    } while (false);
    #endif
 }
 
@@ -409,19 +608,34 @@ PuglStatus puglSetSizeAndDefault(PuglView* const view, const uint width, const u
         // make sure to return context back to ourselves
         puglBackendEnter(view);
     }
-   #elif defined(HAVE_X11)
-    // matches upstream pugl, adds flush at the end
-    if (view->impl->win)
-    {
-        if (const PuglStatus status = puglUpdateSizeHints(view))
-            return status;
+   #elif defined(DGL_USING_X11_OR_WAYLAND)
+    do {
+       #ifdef HAVE_X11
+        if (view->world->handle == kUsingX11Check)
+        {
+            // matches upstream pugl, adds flush at the end
+            x11::PuglView* const x11view = cast<x11::PuglView>(view);
+            if (x11view->impl->win)
+            {
+                if (const x11::PuglStatus status = x11::puglUpdateSizeHints(x11view))
+                    return static_cast<PuglStatus>(status);
 
-        if (const PuglStatus status = puglSetWindowSize(view, width, height))
-            return status;
+                if (const x11::PuglStatus status = x11::puglSetWindowSize(x11view, width, height))
+                    return static_cast<PuglStatus>(status);
 
-        // flush size changes
-        XFlush(view->world->impl->display);
-    }
+                // flush size changes
+                XFlush(x11view->world->impl->display);
+            }
+            break;
+        }
+       #endif
+       #ifdef HAVE_WAYLAND
+        if (view->world->handle == kUsingWaylandCheck)
+        {
+            break;
+        }
+       #endif
+    } while (false);
    #endif
 
     return PUGL_SUCCESS;
@@ -579,13 +793,496 @@ void puglWin32ShowCentered(PuglView* const view)
 #elif defined(DGL_USING_X11_OR_WAYLAND)
 
 // --------------------------------------------------------------------------------------------------------------------
+// X11 vs Wayland redirect
+
+// static constexpr inline PuglStatus status(x11::PuglStatus st) noexcept { return static_cast<PuglStatus>(st); }
+// static constexpr inline PuglStatus status(wl::PuglStatus st) noexcept { return static_cast<PuglStatus>(st); }
+
+PuglStatus puglAcceptOffer(PuglView* const view, const PuglDataOfferEvent* const offer, const uint32_t typeIndex)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(
+            x11::puglAcceptOffer(cast<x11::PuglView>(view), cast<x11::PuglDataOfferEvent>(offer), typeIndex));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(
+            wl::puglAcceptOffer(cast<wl::PuglView>(view), cast<wl::PuglDataOfferEvent>(offer), typeIndex));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglApplySizeHint(PuglView* view, PuglSizeHint hint)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglApplySizeHint(cast<x11::PuglView>(view),
+                                                              static_cast<x11::PuglSizeHint>(hint)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglApplySizeHint(cast<wl::PuglView>(view),
+                                                             static_cast<wl::PuglSizeHint>(hint)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+void puglFreeViewInternals(PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return x11::puglFreeViewInternals(cast<x11::PuglView>(view));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return wl::puglFreeViewInternals(cast<wl::PuglView>(view));
+   #endif
+}
+
+void puglFreeWorldInternals(PuglWorld* const world)
+{
+   #ifdef HAVE_X11
+    if (world->handle == kUsingX11Check)
+        return x11::puglFreeWorldInternals(cast<x11::PuglWorld>(world));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (world->handle == kUsingWaylandCheck)
+        return wl::puglFreeWorldInternals(cast<wl::PuglWorld>(world));
+   #endif
+}
+
+PuglPoint puglGetAncestorCenter(const PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+    {
+        const x11::PuglPoint pp = x11::puglGetAncestorCenter(cast<x11::PuglView>(view));
+        return CPP_AGGREGATE_INIT(PuglPoint){ pp.x, pp.y };
+    }
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+    {
+        const wl::PuglPoint pp = wl::puglGetAncestorCenter(cast<wl::PuglView>(view));
+        return CPP_AGGREGATE_INIT(PuglPoint){ pp.x, pp.y };
+    }
+   #endif
+    return CPP_AGGREGATE_INIT(PuglPoint) { 0, 0 };
+}
+
+const void* puglGetClipboard(PuglView* const view, const uint32_t typeIndex, size_t* const len)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return x11::puglGetClipboard(cast<x11::PuglView>(view), typeIndex, len);
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return wl::puglGetClipboard(cast<wl::PuglView>(view), typeIndex, len);
+   #endif
+    return nullptr;
+}
+
+const char* puglGetClipboardType(const PuglView* const view, const uint32_t typeIndex)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return x11::puglGetClipboardType(cast<x11::PuglView>(view), typeIndex);
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return wl::puglGetClipboardType(cast<wl::PuglView>(view), typeIndex);
+   #endif
+    return nullptr;
+}
+
+PuglNativeView puglGetNativeView(PuglView* view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return x11::puglGetNativeView(cast<x11::PuglView>(view));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return wl::puglGetNativeView(cast<wl::PuglView>(view));
+   #endif
+    return 0;
+}
+
+uint32_t puglGetNumClipboardTypes(const PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return x11::puglGetNumClipboardTypes(cast<x11::PuglView>(view));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return wl::puglGetNumClipboardTypes(cast<wl::PuglView>(view));
+   #endif
+    return 0;
+}
+
+double puglGetScaleFactor(const PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return x11::puglGetScaleFactor(cast<x11::PuglView>(view));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return wl::puglGetScaleFactor(cast<wl::PuglView>(view));
+   #endif
+    return 1.0;
+}
+
+double puglGetTime(const PuglWorld* const world)
+{
+   #ifdef HAVE_X11
+    if (world->handle == kUsingX11Check)
+        return x11::puglGetTime(cast<x11::PuglWorld>(world));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (world->handle == kUsingWaylandCheck)
+        return wl::puglGetTime(cast<wl::PuglWorld>(world));
+   #endif
+    return 0.0;
+}
+
+PuglStatus puglGrabFocus(PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglGrabFocus(cast<x11::PuglView>(view)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglGrabFocus(cast<wl::PuglView>(view)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglHide(PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglHide(cast<x11::PuglView>(view)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglHide(cast<wl::PuglView>(view)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglInternals* puglInitViewInternals(PuglWorld* const world)
+{
+   #ifdef HAVE_X11
+    if (world->handle == kUsingX11Check)
+        return cast<PuglInternals>(x11::puglInitViewInternals(cast<x11::PuglWorld>(world)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (world->handle == kUsingWaylandCheck)
+        return cast<PuglInternals>(wl::puglInitViewInternals(cast<wl::PuglWorld>(world)));
+   #endif
+    return nullptr;
+}
+
+PuglWorldInternals* puglInitWorldInternals(PuglWorld* const world, const PuglWorldType type, const PuglWorldFlags flags)
+{
+    bool usingX11 = false;
+    bool usingWayland = false;
+   #ifdef HAVE_WAYLAND
+    bool supportsDecorations = true;
+   #endif
+
+    // initial choice by env var
+    if (const char* const backend = std::getenv("DPF_BACKEND"))
+    {
+        if (std::strcmp(backend, "x11") == 0)
+            usingX11 = true;
+        else if (std::strcmp(backend, "wayland") == 0)
+            usingWayland = true;
+        else
+            d_stderr("Unknown DPF_BACKEND value, must be 'x11' or 'wayland'");
+    }
+
+    // overridden if required for operation
+    if (flags & PUGL_WORLD_BACKEND_X11)
+    {
+        usingX11 = true;
+        usingWayland = false;
+    }
+    if (flags & PUGL_WORLD_BACKEND_WAYLAND)
+    {
+        usingX11 = false;
+        usingWayland = true;
+       #ifdef HAVE_WAYLAND
+        puglWaylandStatus(&supportsDecorations);
+       #endif
+    }
+
+    // pick backend automatically if none selected
+    if (! (usingX11 || usingWayland))
+    {
+       #ifdef HAVE_WAYLAND
+        usingWayland = puglWaylandStatus(&supportsDecorations);
+        if (! usingWayland)
+       #endif
+        {
+          #ifdef HAVE_X11
+            usingX11 = true;
+           #ifdef HAVE_WAYLAND
+            supportsDecorations = true;
+           #endif
+          #endif
+        }
+
+        if (! (usingX11 || usingWayland))
+        {
+            d_stderr("Could not find a usable windowing backend");
+            return nullptr;
+        }
+    }
+
+    if (usingX11)
+    {
+       #ifdef HAVE_X11
+        d_stdout("Using X11");
+        x11::PuglWorld* const x11world = cast<x11::PuglWorld>(world);
+        x11::puglSetWorldHandle(x11world, const_cast<char*>(kUsingX11Check));
+        return cast<PuglWorldInternals>(x11::puglInitWorldInternals(x11world,
+                                                                    static_cast<x11::PuglWorldType>(type),
+                                                                    static_cast<x11::PuglWorldFlags>(flags)));
+       #else
+        return nullptr;
+       #endif
+    }
+
+    if (usingWayland)
+    {
+       #ifdef HAVE_WAYLAND
+        d_stdout("Using Wayland, compositor supports decorations: %s", supportsDecorations ? "true" : "false");
+        wl::PuglWorld* const wlworld = cast<wl::PuglWorld>(world);
+        wl::puglSetWorldHandle(wlworld, const_cast<char*>(kUsingWaylandCheck));
+        return cast<PuglWorldInternals>(wl::puglInitWorldInternals(wlworld,
+                                                                   static_cast<wl::PuglWorldType>(type),
+                                                                   static_cast<wl::PuglWorldFlags>(flags)));
+       #else
+        return nullptr;
+       #endif
+    }
+
+    return nullptr;
+}
+
+
+PuglStatus puglObscureRegion(PuglView* const view,
+                             const int x,
+                             const int y,
+                             const unsigned width,
+                             const unsigned height)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglObscureRegion(cast<x11::PuglView>(view), x, y, width, height));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglObscureRegion(cast<wl::PuglView>(view), x, y, width, height));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglObscureView(PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglObscureView(cast<x11::PuglView>(view)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglObscureView(cast<wl::PuglView>(view)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglPaste(PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglPaste(cast<x11::PuglView>(view)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglPaste(cast<wl::PuglView>(view)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglRealize(PuglView* const view)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglRealize(cast<x11::PuglView>(view)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglRealize(cast<wl::PuglView>(view)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglSetClipboard(PuglView* const view, const char* const type, const void* const data, const size_t len)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglSetClipboard(cast<x11::PuglView>(view), type, data, len));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglSetClipboard(cast<wl::PuglView>(view), type, data, len));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglSetCursor(PuglView* view, PuglCursor cursor)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglSetCursor(cast<x11::PuglView>(view),
+                                                          static_cast<x11::PuglCursor>(cursor)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglSetCursor(cast<wl::PuglView>(view),
+                                                         static_cast<wl::PuglCursor>(cursor)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglSetTransientParent(PuglView* const view, const PuglNativeView parent)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglSetTransientParent(cast<x11::PuglView>(view), parent));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglSetTransientParent(cast<wl::PuglView>(view), parent));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglSetWindowPosition(PuglView* view, int x, int y)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglSetWindowPosition(cast<x11::PuglView>(view), x, y));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglSetWindowPosition(cast<wl::PuglView>(view), x, y));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglSetWindowSize(PuglView* view, unsigned width, unsigned height)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglSetWindowSize(cast<x11::PuglView>(view), width, height));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglSetWindowSize(cast<wl::PuglView>(view), width, height));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglShow(PuglView* const view, const PuglShowCommand command)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglShow(cast<x11::PuglView>(view),
+                                                     static_cast<x11::PuglShowCommand>(command)));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglShow(cast<wl::PuglView>(view),
+                                                    static_cast<wl::PuglShowCommand>(command)));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglStartTimer(PuglView* const view, const uintptr_t id, const double timeout)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglStartTimer(cast<x11::PuglView>(view), id, timeout));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglStartTimer(cast<wl::PuglView>(view), id, timeout));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglStopTimer(PuglView* const view, const uintptr_t id)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglStopTimer(cast<x11::PuglView>(view), id));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglStopTimer(cast<wl::PuglView>(view), id));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglUpdate(PuglWorld* const world, const double timeout)
+{
+   #ifdef HAVE_X11
+    if (world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglUpdate(cast<x11::PuglWorld>(world), timeout));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglUpdate(cast<wl::PuglWorld>(world), timeout));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+PuglStatus puglViewStringChanged(PuglView* const view, const PuglStringHint key, const char* const value)
+{
+   #ifdef HAVE_X11
+    if (view->world->handle == kUsingX11Check)
+        return static_cast<PuglStatus>(x11::puglViewStringChanged(cast<x11::PuglView>(view),
+                                                                  static_cast<x11::PuglStringHint>(key),
+                                                                  value));
+   #endif
+   #ifdef HAVE_WAYLAND
+    if (view->world->handle == kUsingWaylandCheck)
+        return static_cast<PuglStatus>(wl::puglViewStringChanged(cast<wl::PuglView>(view),
+                                                                 static_cast<wl::PuglStringHint>(key),
+                                                                 value));
+   #endif
+    return PUGL_BAD_BACKEND;
+}
+
+// --------------------------------------------------------------------------------------------------------------------
 // X11 or Wayland specific, check if using wayland
 
 bool puglUsingWayland(PuglWorld* const world)
 {
-    // TODO
-    (void)world;
+#ifdef HAVE_WAYLAND
+    return world->handle == kUsingWaylandCheck;
+#else
     return false;
+    // unused
+    (void)world;
+#endif
 }
 
 #ifdef HAVE_X11
@@ -595,21 +1292,26 @@ bool puglUsingWayland(PuglWorld* const world)
 
 PuglStatus puglX11UpdateWithoutExposures(PuglWorld* const world)
 {
+    if (world->handle != kUsingX11Check)
+        return PUGL_BACKEND_FAILED;
+
+    x11::PuglWorld* const x11world = cast<x11::PuglWorld>(world);
+
     const PuglWorldState startState = world->state;
     world->state = PUGL_WORLD_UPDATING;
-    PuglStatus st = PUGL_SUCCESS;
+    x11::PuglStatus st = x11::PUGL_SUCCESS;
 
-    const double startTime = puglGetTime(world);
+    const double startTime = x11::puglGetTime(x11world);
     const double endTime   = startTime + 0.03;
 
-    for (double t = startTime; !st && t < endTime; t = puglGetTime(world))
+    for (double t = startTime; !st && t < endTime; t = x11::puglGetTime(x11world))
     {
-        if (!(st = pollX11Socket(world, endTime - t)))
-            st = dispatchX11Events(world);
+        if (!(st = x11::pollX11Socket(x11world, endTime - t)))
+            st = x11::dispatchX11Events(x11world);
     }
 
     world->state = startState;
-    return st;
+    return static_cast<PuglStatus>(st);
 }
 
 // --------------------------------------------------------------------------------------------------------------------
@@ -617,8 +1319,12 @@ PuglStatus puglX11UpdateWithoutExposures(PuglWorld* const world)
 
 void puglX11SetWindowType(const PuglView* const view, const bool isStandalone)
 {
-    const PuglInternals* const impl    = view->impl;
-    Display*             const display = view->world->impl->display;
+    if (view->world->handle != kUsingX11Check)
+        return;
+
+    const x11::PuglView*      const x11view = cast<x11::PuglView>(view);
+    const x11::PuglInternals* const impl    = x11view->impl;
+    Display*                  const display = x11view->world->impl->display;
 
    #if defined(DGL_X11_WINDOW_ICON_NAME) && defined(DGL_X11_WINDOW_ICON_SIZE)
     if (isStandalone)
@@ -662,11 +1368,44 @@ void puglX11SetWindowType(const PuglView* const view, const bool isStandalone)
 // --------------------------------------------------------------------------------------------------------------------
 // Wayland specific, check if running wayland and if compositor supports decorations
 
-bool puglWaylandStatus(bool* supportsDecorations)
+static void wayland_compositor_test(void* const data,
+                                    struct wl_registry* const wl_registry,
+                                    const uint32_t name,
+                                    const char* const interface,
+                                    const uint32_t version)
 {
-    // TODO
-    (void)supportsDecorations;
-    return false;
+    if (std::strcmp(interface, zxdg_decoration_manager_v1_interface.name) == 0)
+        *static_cast<bool*>(data) = wl_registry != NULL && name != 0 && version != 0;
+}
+
+bool puglWaylandStatus(bool* const supportsDecorations)
+{
+    static constexpr const struct wl_registry_listener wl_registry_listener = {
+        wayland_compositor_test,
+        nullptr,
+    };
+
+    bool supportsWayland = false;
+    *supportsDecorations = false;
+
+    if (struct wl_display* const wl_display = wl_display_connect(nullptr))
+    {
+        if (struct wl_registry* const wl_registry = wl_display_get_registry(wl_display))
+        {
+            if (wl_registry_add_listener(wl_registry, &wl_registry_listener, supportsDecorations) == 0)
+            {
+                if (wl_display_roundtrip(wl_display) > 0)
+                    // TODO also query required features
+                    supportsWayland = true;
+            }
+
+            wl_registry_destroy(wl_registry);
+        }
+
+        wl_display_disconnect(wl_display);
+    }
+
+    return supportsWayland;
 }
 
 #endif // HAVE_WAYLAND

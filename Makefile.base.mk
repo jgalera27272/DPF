@@ -556,8 +556,16 @@ else ifeq ($(WINDOWS),true)
 OPENGL_FLAGS =
 OPENGL_LIBS  = -lopengl32
 else
-OPENGL_FLAGS = $(shell $(PKG_CONFIG) --cflags gl x11)
-OPENGL_LIBS  = $(shell $(PKG_CONFIG) --libs gl x11)
+OPENGL_FLAGS = $(shell $(PKG_CONFIG) --cflags gl)
+OPENGL_LIBS  = $(shell $(PKG_CONFIG) --libs gl)
+ifeq ($(HAVE_X11),true)
+OPENGL_FLAGS += $(shell $(PKG_CONFIG) --cflags x11)
+OPENGL_LIBS  += $(shell $(PKG_CONFIG) --libs x11)
+endif
+ifeq ($(HAVE_WAYLAND_EGL),true)
+OPENGL_FLAGS += $(shell $(PKG_CONFIG) --cflags egl wayland-egl)
+OPENGL_LIBS  += $(shell $(PKG_CONFIG) --libs egl wayland-egl)
+endif
 endif
 
 HAVE_CAIRO_OR_OPENGL = true
