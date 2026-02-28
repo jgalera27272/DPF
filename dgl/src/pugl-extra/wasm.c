@@ -83,14 +83,7 @@ puglInitViewInternals(PuglWorld* const world)
   return impl;
 }
 
-PuglStatus
-puglApplySizeHint(PuglView* const view, const PuglSizeHint PUGL_UNUSED(hint))
-{
-  // No fine-grained updates, hints are always recalculated together
-  return puglUpdateSizeHints(view);
-}
-
-PuglStatus
+static PuglStatus
 puglUpdateSizeHints(PuglView* const view)
 {
   const char* const className = view->world->strings[PUGL_CLASS_NAME];
@@ -148,6 +141,13 @@ puglUpdateSizeHints(PuglView* const view)
   }
 
   return PUGL_SUCCESS;
+}
+
+PuglStatus
+puglApplySizeHint(PuglView* const view, const PuglSizeHint PUGL_UNUSED(hint))
+{
+  // No fine-grained updates, hints are always recalculated together
+  return puglUpdateSizeHints(view);
 }
 
 static PuglStatus
