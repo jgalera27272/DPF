@@ -1048,7 +1048,7 @@ puglStartTimer(PuglView* const view, const uintptr_t id, const double timeout)
   if (impl->timers == NULL)
     impl->timers = (PuglTimer*)malloc(sizeof(PuglTimer));
   else
-    impl->timers = (PuglTimer*)realloc(impl->timers, sizeof(PuglTimer) * timerIndex);
+    impl->timers = (PuglTimer*)realloc(impl->timers, sizeof(PuglTimer) * impl->numTimers);
 
   PuglTimer* const timer = &impl->timers[timerIndex];
   timer->view = view;
