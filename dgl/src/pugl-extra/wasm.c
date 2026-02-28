@@ -983,11 +983,15 @@ puglGetNativeView(const PuglView* const view)
 }
 
 PuglStatus
-puglViewStringChanged(PuglView*, const PuglStringHint key, const char* const value)
+puglApplyViewString(PuglView*,
+                    const PuglStringHint key,
+                    const char* const    value)
 {
   switch (key) {
+  case PUGL_APPLICATION_NAME:
   case PUGL_CLASS_NAME:
     break;
+
   case PUGL_WINDOW_TITLE:
     emscripten_set_window_title(value);
     break;
@@ -995,7 +999,6 @@ puglViewStringChanged(PuglView*, const PuglStringHint key, const char* const val
 
   return PUGL_SUCCESS;
 }
-
 
 PuglStatus
 puglSetWindowPosition(PuglView* const view, const int x, const int y)
